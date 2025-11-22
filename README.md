@@ -1,169 +1,297 @@
-# 簡単なパスワードジェネレーター / Simple Password Generator
+# Pine Script to Python バックテスト検証
 
-Pythonで作成されたシンプルで使いやすいパスワードジェネレーターです。
+2000行のPine Scriptトレーディングロジックを完全にPythonへ移植し、バックテストで**99%以上の一致率**を達成するプロジェクトです。
 
-A simple and easy-to-use password generator written in Python.
+## 🎯 精度目標
 
-## 特徴 / Features
+- **99%以上の一致率**を達成
+- 不一致が発生した場合は即座に特定・修正
+- Pine Scriptとの完全互換性を保証
 
-- **ランダムパスワード生成**: 大文字、小文字、数字、特殊文字を組み合わせた強力なパスワードを生成
-- **覚えやすいパスワード**: 単語ベースの覚えやすいパスワードを生成
-- **カスタマイズ可能**: 長さや文字タイプを自由に設定
-- **複数生成**: 一度に複数のパスワードを生成可能
+## 📁 プロジェクト構造
 
-- **Random Password Generation**: Generate strong passwords with uppercase, lowercase, digits, and special characters
-- **Memorable Passwords**: Generate word-based memorable passwords
-- **Customizable**: Freely configure length and character types
-- **Batch Generation**: Generate multiple passwords at once
+```
+jiro/
+├── data/                    # データファイル配置
+│   ├── README.md           # データ配置手順
+│   ├── USDJPY_1m.csv       # TradingViewからエクスポートしたOHLCVデータ
+│   └── pine_signals.csv    # Pine Scriptから出力したシグナル
+├── src/                     # メインソースコード
+│   ├── __init__.py
+│   ├── data_loader.py      # データ読み込み
+│   ├── indicators.py       # MA等のインジケーター
+│   ├── signal_history.py   # シグナル履歴管理
+│   ├── pattern_detector.py # 連続ローソク足検知
+│   ├── win_loss.py         # 勝敗判定
+│   └── environment.py      # 環境分析
+├── scripts/                 # 実行スクリプト
+│   ├── 01_export_pine_signals.pine  # Pine Script参照用
+│   ├── 02_run_validation.py         # 検証実行
+│   └── 03_analyze_mismatches.py     # 不一致分析
+├── tests/                   # ユニットテスト
+│   ├── __init__.py
+│   ├── test_indicators.py
+│   └── ...
+├── requirements.txt         # 依存関係
+└── README.md               # このファイル
+```
 
-## 必要要件 / Requirements
+## 🚀 セットアップ
 
-- Python 3.6 以上 / Python 3.6 or higher
-
-## 使い方 / Usage
-
-### 基本的な使い方 / Basic Usage
+### 1. 仮想環境作成
 
 ```bash
-# デフォルト設定（12文字、すべての文字タイプ使用）
-# Default settings (12 characters, all character types)
-python3 password_generator.py
+# 仮想環境作成
+python -m venv venv
+
+# 有効化
+source venv/bin/activate  # Linux/Mac
+# または
+venv\Scripts\activate     # Windows
 ```
 
-### オプション / Options
+### 2. 依存関係インストール
 
 ```bash
-# 16文字のパスワードを生成
-# Generate 16-character password
-python3 password_generator.py -l 16
-
-# 5個のパスワードを生成
-# Generate 5 passwords
-python3 password_generator.py -n 5
-
-# 特殊文字を除外
-# Exclude special characters
-python3 password_generator.py --no-special
-
-# 数字と特殊文字を除外（英字のみ）
-# Exclude digits and special characters (letters only)
-python3 password_generator.py --no-digits --no-special
-
-# 覚えやすいパスワードを生成
-# Generate memorable password
-python3 password_generator.py -m
-
-# 5単語の覚えやすいパスワードを生成
-# Generate memorable password with 5 words
-python3 password_generator.py -m -w 5
+pip install -r requirements.txt
 ```
 
-### すべてのオプション / All Options
+### 3. データ配置
 
-```
--l, --length LENGTH         パスワードの長さ（デフォルト: 12）
-                           Password length (default: 12)
+#### 3.1. OHLCVデータをエクスポート
 
--n, --count COUNT          生成するパスワードの数（デフォルト: 1）
-                           Number of passwords to generate (default: 1)
+1. TradingViewでUSDJPY 1分足チャートを開く
+2. チャート右上の「...」メニュー → 「Export chart data」
+3. `data/USDJPY_1m.csv` として保存
 
---no-uppercase             大文字を除外
-                           Exclude uppercase letters
-
---no-lowercase             小文字を除外
-                           Exclude lowercase letters
-
---no-digits                数字を除外
-                           Exclude digits
-
---no-special               特殊文字を除外
-                           Exclude special characters
-
--m, --memorable            覚えやすいパスワードを生成
-                           Generate memorable password
-
--w, --words WORDS          覚えやすいパスワードの単語数（デフォルト: 4）
-                           Number of words for memorable password (default: 4)
+**フォーマット:**
+```csv
+timestamp,open,high,low,close,volume
+2024-01-01 00:00:00,148.123,148.456,148.000,148.234,1000
+2024-01-01 00:01:00,148.234,148.567,148.123,148.345,1200
+...
 ```
 
-## 使用例 / Examples
+#### 3.2. Pine Scriptでシグナルを出力
 
-### 例1: 強力な20文字パスワード / Example 1: Strong 20-character password
+1. `scripts/01_export_pine_signals.pine` を参考に、実際のロジックを実装
+2. TradingViewで実行し、シグナル履歴を出力
+3. `data/pine_signals.csv` として保存
+
+**フォーマット:**
+```csv
+timestamp,open,high,low,close,long_signal,short_signal,ma20,ma50
+2024-01-01 00:00:00,148.123,148.456,148.000,148.234,0,0,148.100,148.200
+2024-01-01 00:01:00,148.234,148.567,148.123,148.345,1,0,148.150,148.210
+...
+```
+
+詳細は `data/README.md` を参照してください。
+
+## 📊 使い方
+
+### 検証実行
 
 ```bash
-python3 password_generator.py -l 20
+python scripts/02_run_validation.py
 ```
 
-出力例 / Sample output:
+**出力例:**
 ```
-🔐 パスワードジェネレーター / Password Generator
+======================================================================
+Pine Script → Python バックテスト検証
+目標: 99%以上の一致率
+======================================================================
 
-==================================================
-1. K9#mP$xL2@qR7&vN4!t
-==================================================
+データ読み込み
+======================================================================
+✓ OHLCV読み込み成功: 10000行
+✓ Pineシグナル読み込み成功: 10000行
+
+インジケーター検証
+======================================================================
+✓ SMA(20): 99.95% (9995/10000)
+✓ SMA(50): 99.98% (9998/10000)
+✓ SMA(100): 99.99% (9999/10000)
+
+シグナル検証
+======================================================================
+✓ ロングシグナル: 99.92% (9992/10000)
+  Python検知: 45回
+  Pine検知: 45回
+
+検証結果サマリー
+======================================================================
+総検証項目: 5
+合格項目（99%以上）: 5
+不合格項目: 0
+
+全体合格率: 100.0%
+
+======================================================================
+🎉 検証成功！すべての項目で99%以上の一致を達成しました！
+======================================================================
 ```
 
-### 例2: 3個のパスワードを生成 / Example 2: Generate 3 passwords
+### 不一致分析
+
+99%未満の一致率の項目がある場合、詳細分析を実行：
 
 ```bash
-python3 password_generator.py -n 3 -l 14
+python scripts/03_analyze_mismatches.py
 ```
 
-出力例 / Sample output:
+**出力例:**
 ```
-🔐 パスワードジェネレーター / Password Generator
+======================================================================
+SMA(20) 不一致分析
+======================================================================
 
-==================================================
-1. aB3$dE6#gH9!k
-2. Lm2&Pq5*Rs8@v
-3. Wx1^Yz4%Bc7!f
-==================================================
+統計情報:
+  総データ数: 10000
+  最大絶対誤差: 0.0000123456
+  平均絶対誤差: 0.0000001234
+  最大相対誤差: 0.0000000834
+  平均相対誤差: 0.0000000083
+
+誤差分布:
+  50パーセンタイル: 0.0000000500
+  75パーセンタイル: 0.0000001000
+  90パーセンタイル: 0.0000002000
+  95パーセンタイル: 0.0000003000
+  99パーセンタイル: 0.0000010000
+
+最大誤差の詳細（上位10件）:
+  2024-01-01 10:23:00
+    Python: 148.1234567890
+    Pine:   148.1234444444
+    絶対誤差: 0.0000123446
+    相対誤差: 0.0000000833%
 ```
 
-### 例3: 覚えやすいパスワード / Example 3: Memorable password
+### ユニットテスト実行
 
 ```bash
-python3 password_generator.py -m
+# すべてのテスト実行
+pytest tests/ -v
+
+# カバレッジ付き
+pytest tests/ --cov=src --cov-report=html
+
+# 特定のテストのみ
+pytest tests/test_indicators.py -v
 ```
 
-出力例 / Sample output:
-```
-🔐 パスワードジェネレーター / Password Generator
+## 🧩 実装済み機能
 
-==================================================
-1. Dragon-Forest-Happy-Ocean42
-==================================================
+### ✅ コアロジック
+
+- [x] データローダー（OHLCV、Pineシグナル）
+- [x] インジケーター計算（SMA、EMA、RSI、ATR）
+- [x] クロスオーバー/クロスアンダー検知
+- [x] 連続ローソク足検知
+- [x] シグナル履歴管理
+- [x] 勝敗判定ロジック
+- [x] 連勝・連敗検知
+- [x] 環境分析（トレンド、ボラティリティ）
+
+### ✅ 検証ツール
+
+- [x] バックテスト検証スクリプト
+- [x] 不一致分析ツール
+- [x] ユニットテスト
+
+## 🔧 カスタマイズ
+
+### 独自のインジケーター追加
+
+`src/indicators.py` に追加:
+
+```python
+@staticmethod
+def my_indicator(series: pd.Series, period: int) -> pd.Series:
+    """独自のインジケーター"""
+    # 実装
+    return result
 ```
 
-### 例4: 英数字のみ（特殊文字なし）/ Example 4: Alphanumeric only (no special characters)
+### 独自のパターン検知追加
+
+`src/pattern_detector.py` に追加:
+
+```python
+@staticmethod
+def my_pattern(open_series, close_series, ...) -> pd.Series:
+    """独自のパターン検知"""
+    # 実装
+    return result
+```
+
+### 検証項目の追加
+
+`scripts/02_run_validation.py` の `ValidationRunner` クラスに追加:
+
+```python
+def validate_my_logic(self):
+    """独自ロジックの検証"""
+    python_result = ...
+    pine_result = self.pine['my_column']
+
+    result = validate_against_pine(python_result, pine_result, name="My Logic")
+    self.results['my_logic'] = result
+    # ...
+```
+
+## 📈 次のステップ
+
+### 現在の状態
+
+基本的なフレームワークと検証ツールが実装済みです。
+次は**実際のPine Scriptロジック（2000行）**を移植します。
+
+### 移植手順
+
+1. **Pine Scriptを分析**
+   - 使用しているインジケーターをリストアップ
+   - シグナル生成ロジックを理解
+   - 勝敗判定ロジックを理解
+
+2. **段階的に移植**
+   - インジケーターから順番に実装
+   - 各段階で検証を実行（99%以上を確認）
+   - 不一致があれば即座に修正
+
+3. **完全検証**
+   - すべてのロジックで99%以上を達成
+   - バックテスト結果の完全一致を確認
+
+## 🐛 トラブルシューティング
+
+### データが読み込めない
+
+```
+FileNotFoundError: data/USDJPY_1m.csv が見つかりません
+```
+
+→ `data/README.md` を参照してデータを配置してください
+
+### 一致率が99%未満
+
+1. `scripts/03_analyze_mismatches.py` で詳細分析
+2. 誤差の原因を特定（浮動小数点、計算順序など）
+3. ロジックを修正して再検証
+
+### テストが失敗する
 
 ```bash
-python3 password_generator.py -l 16 --no-special
+# 詳細なエラーメッセージを確認
+pytest tests/test_indicators.py -v -s
 ```
 
-出力例 / Sample output:
-```
-🔐 パスワードジェネレーター / Password Generator
-
-==================================================
-1. aB3dE6gH9kLm2Pq
-==================================================
-```
-
-## セキュリティに関する注意 / Security Notes
-
-- 生成されたパスワードは、安全なパスワードマネージャーに保存してください
-- パスワードを他人と共有しないでください
-- 定期的にパスワードを変更してください
-- 複数のサービスで同じパスワードを使用しないでください
-
-- Store generated passwords in a secure password manager
-- Do not share passwords with others
-- Change passwords regularly
-- Do not use the same password for multiple services
-
-## ライセンス / License
+## 📝 ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。
 
-This project is released under the MIT License.
+## 🤝 貢献
+
+Issue、Pull Requestをお待ちしています！
