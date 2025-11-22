@@ -30,6 +30,11 @@ async def chart():
     else:
         return {"detail": "Chart not found"}
 
+@app.get("/validation_result.html")
+async def validation_result():
+    """検証結果HTML"""
+    return FileResponse(os.path.join(STATIC_DIR, "validation_result.html"))
+
 @app.get("/health")
 async def health():
     """ヘルスチェック"""
