@@ -156,11 +156,11 @@ class TradingSystem:
         ma_signal_sell = pd.Series(False, index=df.index)
 
         # トレンド時はフォロー、レンジ時は反発・反転
-        ma_signal_buy[is_trending] = trend_following_buy[is_trending]
-        ma_signal_buy[~is_trending] = (ma_bounce_buy | bb_reversal_buy)[~is_trending]
+        ma_signal_buy.loc[is_trending] = trend_following_buy[is_trending].astype(bool)
+        ma_signal_buy.loc[~is_trending] = (ma_bounce_buy | bb_reversal_buy)[~is_trending].astype(bool)
 
-        ma_signal_sell[is_trending] = trend_following_sell[is_trending]
-        ma_signal_sell[~is_trending] = (ma_bounce_sell | bb_reversal_sell)[~is_trending]
+        ma_signal_sell.loc[is_trending] = trend_following_sell[is_trending].astype(bool)
+        ma_signal_sell.loc[~is_trending] = (ma_bounce_sell | bb_reversal_sell)[~is_trending].astype(bool)
 
         result['ma_signal_buy'] = ma_signal_buy
         result['ma_signal_sell'] = ma_signal_sell
