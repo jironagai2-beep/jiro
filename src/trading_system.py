@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from typing import Tuple, Dict, List
 from dataclasses import dataclass
-from indicators import Indicators
+from src.indicators import Indicators
 
 
 @dataclass
