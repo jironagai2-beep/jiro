@@ -42,7 +42,11 @@ class DataLoader:
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df = df.set_index('timestamp')
         elif 'time' in df.columns:
-            df['time'] = pd.to_datetime(df['time'])
+            # Handle Unix timestamps (numeric) or datetime strings
+            if pd.api.types.is_numeric_dtype(df['time']):
+                df['time'] = pd.to_datetime(df['time'], unit='s')
+            else:
+                df['time'] = pd.to_datetime(df['time'])
             df = df.rename(columns={'time': 'timestamp'})
             df = df.set_index('timestamp')
 
@@ -83,7 +87,11 @@ class DataLoader:
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df = df.set_index('timestamp')
         elif 'time' in df.columns:
-            df['time'] = pd.to_datetime(df['time'])
+            # Handle Unix timestamps (numeric) or datetime strings
+            if pd.api.types.is_numeric_dtype(df['time']):
+                df['time'] = pd.to_datetime(df['time'], unit='s')
+            else:
+                df['time'] = pd.to_datetime(df['time'])
             df = df.rename(columns={'time': 'timestamp'})
             df = df.set_index('timestamp')
 

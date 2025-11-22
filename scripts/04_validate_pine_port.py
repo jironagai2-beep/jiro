@@ -59,9 +59,9 @@ class PinePortValidator:
 
         # MA検証
         ma_columns = {
-            'ma_fast': 'ma5',    # Pine Scriptのカラム名に合わせる
-            'ma_mid': 'ma9',
-            'ma_slow': 'ma21'
+            'ma_fast': '超短期MA',    # Pine Scriptのカラム名（日本語）に合わせる
+            'ma_mid': '短期MA',
+            'ma_slow': '中長期MA'
         }
 
         for py_col, pine_col in ma_columns.items():
