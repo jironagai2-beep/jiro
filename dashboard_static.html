@@ -287,7 +287,8 @@
             <div class="chart-container">
                 <div class="chart-title">📈 チャート (BTC/USD)</div>
                 <div class="chart-placeholder">
-                    <img src="backtest_chart.png" class="chart-image" alt="Trading Chart">
+                    <!-- Canvas for realtime chart -->
+                    <canvas id="chartCanvas" width="900" height="400" style="width:100%; height:400px; background-color:#0e1117; border-radius:4px;"></canvas>
                 </div>
                 <div class="legend">
                     <div class="legend-item">
@@ -322,6 +323,112 @@
                 alert(`${pairName} の詳細を表示します`);
             });
         });
+
+        // --- WebSocket realtime updates ---
+        const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+
+        // map pair name -> DOM element for price
+        const pairPriceMap = {};
+        document.querySelectorAll('.pair-card').forEach(card => {
+            const name = card.querySelector('.pair-name').textContent.trim();
+            const priceEl = card.querySelector('.pair-price');
+            pairPriceMap[name] = priceEl;
+        });
+
+        // Canvas drawing for BTC/USD simple sparkline
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        let btcSeries = [];
+
+        function drawChart(candles) {
+            // clear
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            // background
+            ctx.fillStyle = '#0e1117';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            if (!candles || candles.length === 0) return;
+
+            // use last N candles to fit width
+            const N = Math.min(candles.length, 60);
+            const data = candles.slice(-N);
+
+            const padding = 8;
+            const w = canvas.width - padding*2;
+            const h = canvas.height - padding*2;
+
+            // find global high/low
+            let high = -Infinity, low = Infinity;
+            data.forEach(c => {
+                high = Math.max(high, c.h);
+                low = Math.min(low, c.l);
+            });
+            const range = (high - low) || 1;
+
+            const barWidth = Math.max(2, Math.floor(w / N * 0.7));
+            const gap = (w - barWidth * N) / Math.max(1, N - 1);
+
+            data.forEach((c, i) => {
+                const x = padding + i * (barWidth + gap);
+                const scaleY = v => padding + (1 - (v - low) / range) * h;
+                const yOpen = scaleY(c.o);
+                const yClose = scaleY(c.c);
+                const yHigh = scaleY(c.h);
+                const yLow = scaleY(c.l);
+
+                // wick
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + barWidth/2, yHigh);
+                ctx.lineTo(x + barWidth/2, yLow);
+                ctx.stroke();
+
+                // body
+                const bullish = c.c >= c.o;
+                ctx.fillStyle = bullish ? '#00c853' : '#ff5252';
+                const bodyTop = Math.min(yOpen, yClose);
+                const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
+                ctx.fillRect(x, bodyTop, barWidth, bodyHeight);
+            });
+
+            // draw last price label
+            const last = data[data.length - 1];
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('BTC/USD ' + last.c.toFixed(3), padding + 6, padding + 16);
+        }
+
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            // send a keepalive ping to allow server to detect connection
+            setInterval(() => { try { ws.send('ping'); } catch(e){} }, 20000);
+        };
+
+        ws.onmessage = (evt) => {
+            try {
+                const msg = JSON.parse(evt.data);
+                if (msg.pairs) {
+                    msg.pairs.forEach(p => {
+                        const el = pairPriceMap[p.name];
+                        if (el) el.textContent = p.price;
+                    });
+                }
+
+                if (msg.btc_series) {
+                    btcSeries = msg.btc_series;
+                    drawChart(btcSeries);
+                }
+
+                // update footer timestamp
+                document.getElementById('timestamp').textContent = new Date().toLocaleString('ja-JP');
+            } catch(e) {
+                console.error('ws parse error', e);
+            }
+        };
+
+        ws.onclose = () => console.log('WebSocket closed');
+        ws.onerror = (e) => console.error('WebSocket error', e);
     </script>
 </body>
 </html>
