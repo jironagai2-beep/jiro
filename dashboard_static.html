@@ -427,8 +427,45 @@
             }
         };
 
-        ws.onclose = () => console.log('WebSocket closed');
-        ws.onerror = (e) => console.error('WebSocket error', e);
+        ws.onclose = () => {
+            console.log('WebSocket closed — falling back to SSE');
+            startSSE();
+        };
+        ws.onerror = (e) => {
+            console.error('WebSocket error', e);
+            // attempt SSE fallback
+            startSSE();
+        };
+
+        function startSSE() {
+            if (typeof EventSource === 'undefined') {
+                console.error('EventSource not supported in this environment');
+                return;
+            }
+            const es = new EventSource('/sse');
+            es.onmessage = (evt) => {
+                try {
+                    const msg = JSON.parse(evt.data);
+                    if (msg.pairs) {
+                        msg.pairs.forEach(p => {
+                            const el = pairPriceMap[p.name];
+                            if (el) el.textContent = p.price;
+                        });
+                    }
+                    if (msg.btc_candles) {
+                        btcSeries = msg.btc_candles;
+                        drawChart(btcSeries);
+                    }
+                    document.getElementById('timestamp').textContent = new Date().toLocaleString('ja-JP');
+                } catch(e) {
+                    console.error('sse parse error', e);
+                }
+            };
+            es.onerror = (e) => {
+                console.error('SSE error', e);
+                es.close();
+            };
+        }
     </script>
 </body>
 </html>

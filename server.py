@@ -1,8 +1,8 @@
 """
 静的HTMLダッシュボード用のシンプルなFastAPIサーバー
 """
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 import asyncio
 import random
@@ -13,11 +13,9 @@ app = FastAPI(title="7通貨ペア監視システム")
 # --- WebSocket connections ---
 clients = set()
 
-
-async def price_generator_task():
-    """Background task that simulates price ticks and broadcasts to connected clients."""
-    # initial prices (match dashboard_static.html defaults)
-    pairs = {
+# shared state for generators and SSE
+STATE = {
+    "pairs": {
         "BTC/USD": 84186.040,
         "USD/JPY": 150.433,
         "EUR/USD": 1.498,
@@ -25,53 +23,59 @@ async def price_generator_task():
         "AUD/USD": 1.499,
         "AUD/JPY": 150.389,
         "EUR/JPY": 150.411,
-    }
+    },
+    "btc_candles": [],
+    "current_candle": None,
+}
 
-    # build 1-minute OHLC candles for BTC/USD (keep last 120 minutes)
+
+async def price_generator_task():
+    """Background task that simulates price ticks and broadcasts to connected clients."""
     import time as _time
-    btc_price = pairs["BTC/USD"]
-    btc_candles = []  # list of dicts: {t, o, h, l, c}
 
-    # start current candle aligned to minute
-    now = int(_time.time())
-    current_minute = now - (now % 60)
-    current_candle = {"t": current_minute, "o": btc_price, "h": btc_price, "l": btc_price, "c": btc_price}
+    # ensure state current_candle initialized
+    if STATE["current_candle"] is None:
+        now = int(_time.time())
+        current_minute = now - (now % 60)
+        btc_price = STATE["pairs"]["BTC/USD"]
+        STATE["current_candle"] = {"t": current_minute, "o": btc_price, "h": btc_price, "l": btc_price, "c": btc_price}
 
     while True:
         # simulate ticks each second and update pair prices
-        for k in pairs:
-            change = pairs[k] * (random.uniform(-0.0008, 0.0008))
-            if pairs[k] < 10:
+        for k in STATE["pairs"]:
+            change = STATE["pairs"][k] * (random.uniform(-0.0008, 0.0008))
+            if STATE["pairs"][k] < 10:
                 change = random.uniform(-0.001, 0.001)
-            pairs[k] = round(pairs[k] + change, 6)
+            STATE["pairs"][k] = round(STATE["pairs"][k] + change, 6)
 
         # update BTC current candle with latest price
-        btc_price = pairs["BTC/USD"]
+        btc_price = STATE["pairs"]["BTC/USD"]
         sec = int(_time.time())
         minute = sec - (sec % 60)
 
+        current_candle = STATE["current_candle"]
         if minute != current_candle["t"]:
             # push finished candle
-            btc_candles.append(current_candle.copy())
-            if len(btc_candles) > 120:
-                btc_candles.pop(0)
+            STATE["btc_candles"].append(current_candle.copy())
+            if len(STATE["btc_candles"]) > 120:
+                STATE["btc_candles"].pop(0)
             # start new candle
-            current_candle = {"t": minute, "o": btc_price, "h": btc_price, "l": btc_price, "c": btc_price}
+            STATE["current_candle"] = {"t": minute, "o": btc_price, "h": btc_price, "l": btc_price, "c": btc_price}
         else:
             # update OHLC
-            current_candle["c"] = btc_price
-            if btc_price > current_candle["h"]:
-                current_candle["h"] = btc_price
-            if btc_price < current_candle["l"]:
-                current_candle["l"] = btc_price
+            STATE["current_candle"]["c"] = btc_price
+            if btc_price > STATE["current_candle"]["h"]:
+                STATE["current_candle"]["h"] = btc_price
+            if btc_price < STATE["current_candle"]["l"]:
+                STATE["current_candle"]["l"] = btc_price
 
         payload = {
             "timestamp": asyncio.get_event_loop().time(),
-            "pairs": [{"name": k, "price": pairs[k]} for k in pairs],
-            "btc_candles": btc_candles + [current_candle],
+            "pairs": [{"name": k, "price": STATE["pairs"][k]} for k in STATE["pairs"]],
+            "btc_candles": STATE["btc_candles"] + [STATE["current_candle"]],
         }
 
-        # broadcast
+        # broadcast to websocket clients
         to_remove = []
         for ws in list(clients):
             try:
@@ -91,13 +95,12 @@ async def coinbase_ws_task():
     import time as _time
 
     product = "BTC-USD"
-    pairs["BTC/USD"] = pairs.get("BTC/USD", 0.0)
-
-    # candle storage
-    btc_candles = []
-    now = int(_time.time())
-    current_minute = now - (now % 60)
-    current_candle = {"t": current_minute, "o": pairs["BTC/USD"], "h": pairs["BTC/USD"], "l": pairs["BTC/USD"], "c": pairs["BTC/USD"]}
+    # ensure STATE current_candle initialized
+    if STATE["current_candle"] is None:
+        now = int(_time.time())
+        current_minute = now - (now % 60)
+        price0 = STATE["pairs"]["BTC/USD"]
+        STATE["current_candle"] = {"t": current_minute, "o": price0, "h": price0, "l": price0, "c": price0}
 
     url = "wss://ws-feed.pro.coinbase.com"
     while True:
@@ -111,7 +114,7 @@ async def coinbase_ws_task():
                         data = json.loads(msg)
                         if data.get('type') in ('ticker', 'snapshot') and data.get('product_id') == product:
                             price = float(data.get('price') or data.get('last_trade_price') or 0)
-                            pairs["BTC/USD"] = price
+                            STATE["pairs"]["BTC/USD"] = price
 
                             sec = int(_time.time())
                             minute = sec - (sec % 60)
@@ -130,8 +133,8 @@ async def coinbase_ws_task():
 
                             payload = {
                                 "timestamp": asyncio.get_event_loop().time(),
-                                "pairs": [{"name": k, "price": pairs[k]} for k in pairs],
-                                "btc_candles": btc_candles + [current_candle],
+                                "pairs": [{"name": k, "price": STATE["pairs"][k]} for k in STATE["pairs"]],
+                                "btc_candles": STATE["btc_candles"] + [STATE["current_candle"]],
                             }
 
                             to_remove = []
@@ -195,6 +198,24 @@ async def websocket_endpoint(websocket: WebSocket):
         clients.discard(websocket)
     except Exception:
         clients.discard(websocket)
+
+
+@app.get('/sse')
+async def sse_endpoint(request: Request):
+    """Server-Sent Events endpoint that streams JSON payloads."""
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+            payload = {
+                "timestamp": asyncio.get_event_loop().time(),
+                "pairs": [{"name": k, "price": STATE["pairs"][k]} for k in STATE["pairs"]],
+                "btc_candles": STATE["btc_candles"] + ([STATE["current_candle"]] if STATE["current_candle"] else []),
+            }
+            yield f"data: {json.dumps(payload)}\n\n"
+            await asyncio.sleep(1)
+
+    return StreamingResponse(event_generator(), media_type='text/event-stream')
 
 @app.get("/validation_result.html")
 async def validation_result():
