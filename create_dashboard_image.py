@@ -87,14 +87,19 @@ def create_dashboard():
     # チャートタイトル
     draw.text((chart_x + 20, chart_y + 20), "📈 チャート (BTC/USD)", fill=title_color, font=header_font)
 
-    # バックテストチャートを読み込んで配置
+    # バックテストチャートを読み込んで配置 (ワークスペース相対パス)
     try:
-        chart_img = Image.open('/home/user/jiro/backtest_chart.png')
+        chart_path = os.path.join(os.path.dirname(__file__), 'backtest_chart.png')
+        chart_img = Image.open(chart_path)
         # チャート画像をリサイズ
-        chart_img = chart_img.resize((1200, 800), Image.Resampling.LANCZOS)
+        try:
+            resample_method = Image.Resampling.LANCZOS
+        except AttributeError:
+            resample_method = Image.LANCZOS
+        chart_img = chart_img.resize((1200, 800), resample_method)
         # チャートを貼り付け
         img.paste(chart_img, (chart_x + 20, chart_y + 60))
-    except Exception as e:
+    except Exception:
         draw.text((chart_x + 500, chart_y + 400), "チャート読み込みエラー", fill=text_color, font=normal_font)
 
     # 凡例
