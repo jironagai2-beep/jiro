@@ -7,9 +7,15 @@ Pine Scriptのロジックを完全再現
 import pandas as pd
 import numpy as np
 from typing import Dict, Tuple
-from trading_system import TradingSystem, TradingConfig
-from signal_manager import SignalManager, StreakDetector
-from environment_matcher import EnvironmentMatcher
+
+try:
+    from .trading_system import TradingSystem, TradingConfig
+    from .signal_manager import SignalManager, StreakDetector
+    from .environment_matcher import EnvironmentMatcher
+except ImportError:
+    from trading_system import TradingSystem, TradingConfig
+    from signal_manager import SignalManager, StreakDetector
+    from environment_matcher import EnvironmentMatcher
 
 
 class BacktestEngine:

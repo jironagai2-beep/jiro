@@ -8,7 +8,11 @@ import pandas as pd
 import numpy as np
 from typing import Tuple, Dict, List
 from dataclasses import dataclass
-from src.indicators import Indicators
+
+try:
+    from .indicators import Indicators
+except ImportError:
+    from indicators import Indicators
 
 
 @dataclass

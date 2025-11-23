@@ -7,7 +7,11 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, Tuple
-from indicators import Indicators
+
+try:
+    from .indicators import Indicators
+except ImportError:
+    from indicators import Indicators
 
 
 class EnvironmentAnalyzer:
