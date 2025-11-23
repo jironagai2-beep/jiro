@@ -350,7 +350,7 @@
             if (!candles || candles.length === 0) return;
 
             // use last N candles to fit width
-            const N = Math.min(candles.length, 60);
+            const N = 20; // show last 20 candles as requested
             const data = candles.slice(-N);
 
             const padding = 8;

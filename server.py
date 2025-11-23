@@ -85,10 +85,79 @@ async def price_generator_task():
         await asyncio.sleep(1)
 
 
+async def coinbase_ws_task():
+    """Connect to Coinbase websocket and build 1-minute candles for BTC-USD."""
+    import websockets as _ws
+    import time as _time
+
+    product = "BTC-USD"
+    pairs["BTC/USD"] = pairs.get("BTC/USD", 0.0)
+
+    # candle storage
+    btc_candles = []
+    now = int(_time.time())
+    current_minute = now - (now % 60)
+    current_candle = {"t": current_minute, "o": pairs["BTC/USD"], "h": pairs["BTC/USD"], "l": pairs["BTC/USD"], "c": pairs["BTC/USD"]}
+
+    url = "wss://ws-feed.pro.coinbase.com"
+    while True:
+        try:
+            async with _ws.connect(url) as ws:
+                sub = {"type": "subscribe", "channels": [{"name": "ticker", "product_ids": [product]}]}
+                await ws.send(json.dumps(sub))
+
+                async for msg in ws:
+                    try:
+                        data = json.loads(msg)
+                        if data.get('type') in ('ticker', 'snapshot') and data.get('product_id') == product:
+                            price = float(data.get('price') or data.get('last_trade_price') or 0)
+                            pairs["BTC/USD"] = price
+
+                            sec = int(_time.time())
+                            minute = sec - (sec % 60)
+
+                            if minute != current_candle['t']:
+                                btc_candles.append(current_candle.copy())
+                                if len(btc_candles) > 120:
+                                    btc_candles.pop(0)
+                                current_candle = {"t": minute, "o": price, "h": price, "l": price, "c": price}
+                            else:
+                                current_candle['c'] = price
+                                if price > current_candle['h']:
+                                    current_candle['h'] = price
+                                if price < current_candle['l']:
+                                    current_candle['l'] = price
+
+                            payload = {
+                                "timestamp": asyncio.get_event_loop().time(),
+                                "pairs": [{"name": k, "price": pairs[k]} for k in pairs],
+                                "btc_candles": btc_candles + [current_candle],
+                            }
+
+                            to_remove = []
+                            for ws_client in list(clients):
+                                try:
+                                    await ws_client.send_text(json.dumps(payload))
+                                except Exception:
+                                    to_remove.append(ws_client)
+                            for ws_client in to_remove:
+                                clients.discard(ws_client)
+                    except Exception:
+                        continue
+        except Exception:
+            # reconnect after short delay
+            await asyncio.sleep(5)
+
+
+
 @app.on_event("startup")
 async def startup_event():
-    # start background price generator
-    asyncio.create_task(price_generator_task())
+    # start background price generator or Coinbase feed depending on env
+    use_coinbase = os.environ.get('USE_COINBASE', '').lower() in ('1', 'true', 'yes')
+    if use_coinbase:
+        asyncio.create_task(coinbase_ws_task())
+    else:
+        asyncio.create_task(price_generator_task())
 
 
 # 静的ファイルのディレクトリ
