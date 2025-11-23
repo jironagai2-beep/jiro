@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7通貨ペア監視システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #0e1117;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #4da6ff;
+            font-size: 28px;
+        }
+
+        .status {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        .pairs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .pair-card {
+            background-color: #1e2130;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #2d3142;
+        }
+
+        .pair-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4da6ff;
+        }
+
+        .pair-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .pair-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .detail-btn {
+            background-color: #4da6ff;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .detail-btn:hover {
+            background-color: #3d8acc;
+        }
+
+        .chart-container {
+            background-color: #1e2130;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #2d3142;
+        }
+
+        .chart-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #4da6ff;
+        }
+
+        .chart-placeholder {
+            background-color: #0e1117;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .chart-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 7通貨ペア監視システム</h1>
+        <div class="status">Server: Connected 🟢</div>
+    </div>
+
+    <div class="container">
+        <!-- 左側: 通貨ペア一覧 -->
+        <div>
+            <div class="pairs-grid">
+                <div class="pair-card">
+                    <div class="pair-name">BTC/USD</div>
+                    <div class="pair-price">84186.040</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">USD/JPY</div>
+                    <div class="pair-price">150.433</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">EUR/USD</div>
+                    <div class="pair-price">1.498</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">GBP/JPY</div>
+                    <div class="pair-price">150.229</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">AUD/USD</div>
+                    <div class="pair-price">1.499</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">AUD/JPY</div>
+                    <div class="pair-price">150.389</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">EUR/JPY</div>
+                    <div class="pair-price">150.411</div>
+                    <div class="pair-stats">
+                        <div class="stat">
+                            <div class="stat-label">運勝数</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">勝率</div>
+                            <div class="stat-value">0%</div>
+                        </div>
+                    </div>
+                    <button class="detail-btn">詳細</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側: チャート -->
+        <div>
+            <div class="chart-container">
+                <div class="chart-title">📈 チャート (BTC/USD)</div>
+                <div class="chart-placeholder">
+                    <!-- Canvas for realtime chart -->
+                    <canvas id="chartCanvas" width="900" height="400" style="width:100%; height:400px; background-color:#0e1117; border-radius:4px;"></canvas>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffeb3b;"></div>
+                        <span>MA Fast</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff9800;"></div>
+                        <span>MA Mid</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #f44336;"></div>
+                        <span>MA Slow</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        最終更新: <span id="timestamp"></span>
+    </div>
+
+    <script>
+        // 現在時刻を表示
+        document.getElementById('timestamp').textContent = new Date().toLocaleString('ja-JP');
+
+        // 詳細ボタンのクリックイベント
+        document.querySelectorAll('.detail-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const pairName = this.parentElement.querySelector('.pair-name').textContent;
+                alert(`${pairName} の詳細を表示します`);
+            });
+        });
+
+        // --- WebSocket realtime updates ---
+        const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+
+        // map pair name -> DOM element for price
+        const pairPriceMap = {};
+        document.querySelectorAll('.pair-card').forEach(card => {
+            const name = card.querySelector('.pair-name').textContent.trim();
+            const priceEl = card.querySelector('.pair-price');
+            pairPriceMap[name] = priceEl;
+        });
+
+        // Canvas drawing for BTC/USD simple sparkline
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        let btcSeries = [];
+
+        function drawChart(candles) {
+            // clear
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            // background
+            ctx.fillStyle = '#0e1117';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            if (!candles || candles.length === 0) return;
+
+            // use last N candles to fit width
+            const N = 20; // show last 20 candles as requested
+            const data = candles.slice(-N);
+
+            const padding = 8;
+            const w = canvas.width - padding*2;
+            const h = canvas.height - padding*2;
+
+            // find global high/low
+            let high = -Infinity, low = Infinity;
+            data.forEach(c => {
+                high = Math.max(high, c.h);
+                low = Math.min(low, c.l);
+            });
+            const range = (high - low) || 1;
+
+            const barWidth = Math.max(2, Math.floor(w / N * 0.7));
+            const gap = (w - barWidth * N) / Math.max(1, N - 1);
+
+            data.forEach((c, i) => {
+                const x = padding + i * (barWidth + gap);
+                const scaleY = v => padding + (1 - (v - low) / range) * h;
+                const yOpen = scaleY(c.o);
+                const yClose = scaleY(c.c);
+                const yHigh = scaleY(c.h);
+                const yLow = scaleY(c.l);
+
+                // wick
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + barWidth/2, yHigh);
+                ctx.lineTo(x + barWidth/2, yLow);
+                ctx.stroke();
+
+                // body
+                const bullish = c.c >= c.o;
+                ctx.fillStyle = bullish ? '#00c853' : '#ff5252';
+                const bodyTop = Math.min(yOpen, yClose);
+                const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
+                ctx.fillRect(x, bodyTop, barWidth, bodyHeight);
+            });
+
+            // draw last price label
+            const last = data[data.length - 1];
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('BTC/USD ' + last.c.toFixed(3), padding + 6, padding + 16);
+        }
+
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            // send a keepalive ping to allow server to detect connection
+            setInterval(() => { try { ws.send('ping'); } catch(e){} }, 20000);
+        };
+
+        ws.onmessage = (evt) => {
+            try {
+                const msg = JSON.parse(evt.data);
+                if (msg.pairs) {
+                    msg.pairs.forEach(p => {
+                        const el = pairPriceMap[p.name];
+                        if (el) el.textContent = p.price;
+                    });
+                }
+
+                if (msg.btc_series) {
+                    btcSeries = msg.btc_series;
+                    drawChart(btcSeries);
+                }
+
+                // update footer timestamp
+                document.getElementById('timestamp').textContent = new Date().toLocaleString('ja-JP');
+            } catch(e) {
+                console.error('ws parse error', e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket closed — falling back to SSE');
+            startSSE();
+        };
+        ws.onerror = (e) => {
+            console.error('WebSocket error', e);
+            // attempt SSE fallback
+            startSSE();
+        };
+
+        function startSSE() {
+            if (typeof EventSource === 'undefined') {
+                console.error('EventSource not supported in this environment');
+                return;
+            }
+            const es = new EventSource('/sse');
+            es.onmessage = (evt) => {
+                try {
+                    const msg = JSON.parse(evt.data);
+                    if (msg.pairs) {
+                        msg.pairs.forEach(p => {
+                            const el = pairPriceMap[p.name];
+                            if (el) el.textContent = p.price;
+                        });
+                    }
+                    if (msg.btc_candles) {
+                        btcSeries = msg.btc_candles;
+                        drawChart(btcSeries);
+                    }
+                    document.getElementById('timestamp').textContent = new Date().toLocaleString('ja-JP');
+                } catch(e) {
+                    console.error('sse parse error', e);
+                }
+            };
+            es.onerror = (e) => {
+                console.error('SSE error', e);
+                es.close();
+            };
+        }
+    </script>
+</body>
+</html>
